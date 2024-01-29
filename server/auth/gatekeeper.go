@@ -116,6 +116,7 @@ func (s *gatekeeper) ContextWithRequest(ctx context.Context, req interface{}) (c
 	ctx = context.WithValue(ctx, SensorKey, clients.Sensor)
 	ctx = context.WithValue(ctx, KubeKey, clients.Kubernetes)
 	ctx = context.WithValue(ctx, ClaimsKey, claims)
+	log.Info("Added context to request - SA" + claims.ServiceAccountName + " from " + claims.ServiceAccountNamespace)
 	return ctx, nil
 }
 
@@ -199,9 +200,11 @@ func (s gatekeeper) getClients(ctx context.Context, req interface{}) (*servertyp
 			return nil, nil, status.Error(codes.Unauthenticated, err.Error())
 		}
 		claims, _ := serviceaccount.ClaimSetFor(restConfig)
+		log.Info("getClients - mode Client - using " + claims.ServiceAccountName + " from " + claims.ServiceAccountNamespace)
 		return clients, claims, nil
 	case Server:
 		claims, _ := serviceaccount.ClaimSetFor(s.restConfig)
+		log.Info("getClients - mode Server - using " + claims.ServiceAccountName + " from " + claims.ServiceAccountNamespace)
 		return s.clients, claims, nil
 	case SSO:
 		claims, err := s.ssoIf.Authorize(authorization)
@@ -214,10 +217,12 @@ func (s gatekeeper) getClients(ctx context.Context, req interface{}) (*servertyp
 				log.WithError(err).Error("failed to perform RBAC authorization")
 				return nil, nil, status.Error(codes.PermissionDenied, "not allowed")
 			}
+			log.Info("getClients - mode SSO-> IsRBACEnabled=true - using " + claims.ServiceAccountName + " from " + claims.ServiceAccountNamespace)
 			return clients, claims, nil
 		} else {
 			// important! write an audit entry (i.e. log entry) so we know which user performed an operation
 			log.WithFields(addClaimsLogFields(claims, nil)).Info("using the default service account for user")
+			log.Info("getClients - mode SSO-> IsRBACEnabled=false - using " + claims.ServiceAccountName + " from " + claims.ServiceAccountNamespace)
 			return s.clients, claims, nil
 		}
 	default:
@@ -242,6 +247,7 @@ func precedence(serviceAccount *corev1.ServiceAccount) int {
 }
 
 func (s *gatekeeper) getServiceAccount(claims *types.Claims, namespace string) (*corev1.ServiceAccount, error) {
+	log.Info("getServiceAccount for namespace " + namespace)
 	list, err := s.cache.ServiceAccountLister.ServiceAccounts(namespace).List(labels.Everything())
 	if err != nil {
 		return nil, fmt.Errorf("failed to list SSO RBAC service accounts: %w", err)
