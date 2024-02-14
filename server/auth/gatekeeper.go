@@ -327,6 +327,7 @@ func (s *gatekeeper) authorizationForServiceAccount(ctx context.Context, service
 	secretName := secrets.TokenNameForServiceAccount(serviceAccount)
 	secret, err := s.cache.GetSecret(ctx, serviceAccount.GetNamespace(), secretName)
 	log.Info("authorizationForServiceAccount - " + serviceAccount.Name)
+	log.Info("authorizationForServiceAccount - " + serviceAccount.GetNamespace())
 	log.Info("authorizationForServiceAccount - " + secretName)
 	if err != nil {
 		return "", fmt.Errorf("failed to get service account secret: %w", err)
