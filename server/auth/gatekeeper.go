@@ -116,7 +116,7 @@ func (s *gatekeeper) ContextWithRequest(ctx context.Context, req interface{}) (c
 	ctx = context.WithValue(ctx, SensorKey, clients.Sensor)
 	ctx = context.WithValue(ctx, KubeKey, clients.Kubernetes)
 	ctx = context.WithValue(ctx, ClaimsKey, claims)
-	log.Info("Added context to request - SA" + claims.ServiceAccountName + " from " + claims.ServiceAccountNamespace)
+	log.Info("Added context to request - SA " + claims.ServiceAccountName + " from " + claims.ServiceAccountNamespace)
 	return ctx, nil
 }
 
@@ -326,9 +326,12 @@ func (s *gatekeeper) rbacAuthorization(ctx context.Context, claims *types.Claims
 func (s *gatekeeper) authorizationForServiceAccount(ctx context.Context, serviceAccount *corev1.ServiceAccount) (string, error) {
 	secretName := secrets.TokenNameForServiceAccount(serviceAccount)
 	secret, err := s.cache.GetSecret(ctx, serviceAccount.GetNamespace(), secretName)
+	log.Info("authorizationForServiceAccount - " + serviceAccount.Name)
+	log.Info("authorizationForServiceAccount - " + secretName)
 	if err != nil {
 		return "", fmt.Errorf("failed to get service account secret: %w", err)
 	}
+	log.Info("authorizationForServiceAccount - Bearer " + string(secret.Data["token"]))
 	return "Bearer " + string(secret.Data["token"]), nil
 }
 
